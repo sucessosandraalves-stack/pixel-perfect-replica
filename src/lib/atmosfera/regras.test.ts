@@ -4,6 +4,9 @@ import {
   abaterEstoque,
   auditarLote,
   calcularResumo,
+  exigirPagamentoConfirmado,
+  gerarDadosPix,
+  validarCartao,
   interpretarPedido,
   recomendarCombinacao,
 } from "./regras";
@@ -98,5 +101,32 @@ describe("Dupla contagem entre formatos", () => {
       lotesIniciais(),
     );
     expect(r.aprovado).toBe(false);
+  });
+});
+
+describe("Pagamento via conta garantia (Escrow)", () => {
+  it("não libera o certificado sem pagamento confirmado", () => {
+    expect(() => exigirPagamentoConfirmado({ confirmado: false })).toThrow();
+    expect(() => exigirPagamentoConfirmado(null)).toThrow();
+    expect(() => exigirPagamentoConfirmado({ confirmado: true })).not.toThrow();
+  });
+  it("PIX cobra o total convertido pela cotação de referência", () => {
+    const pix = gerarDadosPix("ESC-TESTE01", 2050);
+    expect(pix.valorBRL).toBe(11070);
+    expect(pix.copiaECola).toContain("ESC-TESTE01");
+  });
+  it("recusa cartão corporativo vencido", () => {
+    const erro = validarCartao(
+      { numero: "4111 1111 1111 1111", nome: "Siderúrgica Horizonte", validade: "10/26", cvv: "123" },
+      new Date("2026-11-22T12:00:00Z"),
+    );
+    expect(erro).toBe("Cartão vencido.");
+  });
+  it("aceita cartão corporativo válido", () => {
+    const erro = validarCartao(
+      { numero: "4111 1111 1111 1111", nome: "Siderúrgica Horizonte", validade: "12/28", cvv: "123" },
+      new Date("2026-11-22T12:00:00Z"),
+    );
+    expect(erro).toBeNull();
   });
 });

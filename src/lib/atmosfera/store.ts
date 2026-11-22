@@ -1,7 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { COMPRADOR_DEMO, VENDEDOR_DEMO, lotesIniciais } from "./dados-iniciais";
-import { abaterEstoque, calcularResumo, gerarHash, type ResultadoAuditoria } from "./regras";
-import type { Compra, Lote, Perfil, TipoProjeto, Usuario } from "./tipos";
+import {
+  abaterEstoque,
+  calcularResumo,
+  exigirPagamentoConfirmado,
+  gerarHash,
+  type ResultadoAuditoria,
+} from "./regras";
+import type { Compra, Lote, PagamentoConfirmado, Perfil, TipoProjeto, Usuario } from "./tipos";
 
 export interface Estado {
   hidratado: boolean;
@@ -127,7 +133,14 @@ export const acoes = {
     definir((e) => ({ ...e, lotes: [lote, ...e.lotes] }));
     return lote;
   },
-  comprar(comprador: Usuario, loteId: string, quantidade: number, aprovacaoHumana: boolean): Compra {
+  comprar(
+    comprador: Usuario,
+    loteId: string,
+    quantidade: number,
+    aprovacaoHumana: boolean,
+    pagamento: PagamentoConfirmado,
+  ): Compra {
+    exigirPagamentoConfirmado(pagamento);
     const atual = carregar();
     const lote = atual.lotes.find((l) => l.id === loteId);
     if (!lote) throw new Error("Lote não encontrado.");
@@ -159,6 +172,7 @@ export const acoes = {
       taxa: resumo.taxa,
       total: resumo.total,
       aprovacaoHumana: resumo.exigeAprovacaoHumana,
+      pagamento,
       hash: gerarHash(`compra|${id}|${loteId}|${comprador.id}|${quantidade}|${data}`),
       data,
     };

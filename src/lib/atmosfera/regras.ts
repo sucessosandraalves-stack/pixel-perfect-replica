@@ -1,4 +1,4 @@
-import type { Lote, TipoProjeto } from "./tipos";
+import type { FormaPagamento, Lote, TipoProjeto } from "./tipos";
 
 /** Taxa transparente da plataforma sobre o valor pago ao vendedor. */
 export const TAXA_PLATAFORMA = 0.025;
@@ -245,4 +245,81 @@ export function recomendarCombinacao(lotes: Lote[], pedido: Pedido): Recomendaca
     total: arred(subtotal + taxa),
     precoMedio: quantidadeAtendida ? arred(subtotal / quantidadeAtendida) : 0,
   };
+}
+
+// ---------- Pagamento e conta garantia (Escrow) ----------
+
+export const FORMAS_PAGAMENTO: Record<FormaPagamento, { nome: string; prazo: string }> = {
+  pix: { nome: "PIX Instantâneo", prazo: "Confirmação em segundos" },
+  swift: { nome: "Transferência Internacional (SWIFT/Wire)", prazo: "Compensação em 1 a 2 dias úteis" },
+  cartao: { nome: "Cartão Corporativo", prazo: "Pré-autorização imediata" },
+};
+
+/** Cotação de referência US$ → R$ usada na demonstração para valores PIX. */
+export const COTACAO_REFERENCIA_BRL = 5.4;
+
+export const CONTA_ESCROW = {
+  beneficiario: "ATMOSFERA Custódia Escrow Ltda. — Conta Garantia",
+  cnpj: "52.418.903/0001-27",
+  banco: "Banco Custódia Atlântico S.A.",
+  agencia: "0001",
+  conta: "1093256-1",
+  swift: "BCATBRSPXXX",
+  iban: "BR15 0036 0305 0000 1093 2560 1C1",
+  intermediario: "JPMorgan Chase Bank N.A. — SWIFT CHASUS33",
+};
+
+export function gerarEscrowId(semente: string): string {
+  return `ESC-${gerarHash(`escrow|${semente}`).slice(0, 8).toUpperCase()}`;
+}
+
+export interface DadosPix {
+  chave: string;
+  valorBRL: number;
+  copiaECola: string;
+}
+
+export function gerarDadosPix(escrowId: string, totalUSD: number): DadosPix {
+  const h = gerarHash(`pix|${escrowId}`);
+  const chave = `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  const valorBRL = arred(totalUSD * COTACAO_REFERENCIA_BRL);
+  const valorTxt = valorBRL.toFixed(2);
+  const copiaECola =
+    `00020126580014br.gov.bcb.pix0136${chave}` +
+    `52040000530398654${String(valorTxt.length).padStart(2, "0")}${valorTxt}` +
+    `5802BR5925ATMOSFERA CUSTODIA ESCRO6009SAO PAULO62${String(escrowId.length + 4).padStart(2, "0")}05${String(escrowId.length).padStart(2, "0")}${escrowId}6304${h.slice(32, 36).toUpperCase()}`;
+  return { chave, valorBRL, copiaECola };
+}
+
+export function referenciaSwift(escrowId: string, loteId: string) {
+  return `${escrowId}/ATM/${loteId.toUpperCase().slice(0, 12)}`;
+}
+
+export interface DadosCartao {
+  numero: string;
+  nome: string;
+  validade: string;
+  cvv: string;
+}
+
+/** Retorna mensagem de erro em português, ou null quando o cartão é aceito. */
+export function validarCartao(c: DadosCartao, hoje = new Date()): string | null {
+  const numero = c.numero.replace(/\D/g, "");
+  if (numero.length < 13 || numero.length > 19) return "Número do cartão inválido.";
+  if (c.nome.trim().length < 3) return "Informe o nome impresso no cartão.";
+  const m = c.validade.match(/^(\d{2})\/(\d{2})$/);
+  if (!m || !m[1] || !m[2]) return "Validade deve estar no formato MM/AA.";
+  const mes = parseInt(m[1], 10);
+  const ano = 2000 + parseInt(m[2], 10);
+  if (mes < 1 || mes > 12) return "Mês de validade inválido.";
+  const fimValidade = new Date(ano, mes, 1);
+  if (fimValidade <= hoje) return "Cartão vencido.";
+  if (!/^\d{3,4}$/.test(c.cvv)) return "CVV inválido.";
+  return null;
+}
+
+/** O certificado contábil só é liberado depois do pagamento confirmado na conta garantia. */
+export function exigirPagamentoConfirmado(pagamento: { confirmado: boolean } | null | undefined) {
+  if (!pagamento || !pagamento.confirmado)
+    throw new Error("Pagamento ainda não confirmado na conta garantia (Escrow).");
 }

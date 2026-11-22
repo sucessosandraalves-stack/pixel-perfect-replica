@@ -39,6 +39,19 @@ export interface Lote {
   criadoEm: string;
 }
 
+export type FormaPagamento = "pix" | "swift" | "cartao";
+
+export interface PagamentoConfirmado {
+  forma: FormaPagamento;
+  escrowId: string;
+  confirmado: boolean;
+  confirmadoEm: string;
+  /** Últimos 4 dígitos, apenas para cartão. Número completo nunca é guardado. */
+  ultimos4?: string;
+  /** Valor convertido em reais, apenas para PIX. */
+  valorBRL?: number;
+}
+
 export interface Compra {
   id: string;
   loteId: string;
@@ -61,6 +74,7 @@ export interface Compra {
   taxa: number;
   total: number;
   aprovacaoHumana: boolean;
+  pagamento?: PagamentoConfirmado;
   hash: string;
   data: string;
 }
