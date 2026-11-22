@@ -10,33 +10,115 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssistenteRouteImport } from './routes/assistente'
+import { Route as CertificadosRouteImport } from './routes/certificados'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
+import { Route as VendedorRouteImport } from './routes/vendedor'
+import { Route as CertificadoCompraIdRouteImport } from './routes/certificado.$compraId'
+import { Route as CheckoutLoteIdRouteImport } from './routes/checkout.$loteId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssistenteRoute = AssistenteRouteImport.update({
+  id: '/assistente',
+  path: '/assistente',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificadosRoute = CertificadosRouteImport.update({
+  id: '/certificados',
+  path: '/certificados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VendedorRoute = VendedorRouteImport.update({
+  id: '/vendedor',
+  path: '/vendedor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificadoCompraIdRoute = CertificadoCompraIdRouteImport.update({
+  id: '/certificado/$compraId',
+  path: '/certificado/$compraId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutLoteIdRoute = CheckoutLoteIdRouteImport.update({
+  id: '/checkout/$loteId',
+  path: '/checkout/$loteId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistente': typeof AssistenteRoute
+  '/certificados': typeof CertificadosRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/vendedor': typeof VendedorRoute
+  '/certificado/$compraId': typeof CertificadoCompraIdRoute
+  '/checkout/$loteId': typeof CheckoutLoteIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistente': typeof AssistenteRoute
+  '/certificados': typeof CertificadosRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/vendedor': typeof VendedorRoute
+  '/certificado/$compraId': typeof CertificadoCompraIdRoute
+  '/checkout/$loteId': typeof CheckoutLoteIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistente': typeof AssistenteRoute
+  '/certificados': typeof CertificadosRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/vendedor': typeof VendedorRoute
+  '/certificado/$compraId': typeof CertificadoCompraIdRoute
+  '/checkout/$loteId': typeof CheckoutLoteIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/assistente'
+    | '/certificados'
+    | '/marketplace'
+    | '/vendedor'
+    | '/certificado/$compraId'
+    | '/checkout/$loteId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/assistente'
+    | '/certificados'
+    | '/marketplace'
+    | '/vendedor'
+    | '/certificado/$compraId'
+    | '/checkout/$loteId'
+  id:
+    | '__root__'
+    | '/'
+    | '/assistente'
+    | '/certificados'
+    | '/marketplace'
+    | '/vendedor'
+    | '/certificado/$compraId'
+    | '/checkout/$loteId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistenteRoute: typeof AssistenteRoute
+  CertificadosRoute: typeof CertificadosRoute
+  MarketplaceRoute: typeof MarketplaceRoute
+  VendedorRoute: typeof VendedorRoute
+  CertificadoCompraIdRoute: typeof CertificadoCompraIdRoute
+  CheckoutLoteIdRoute: typeof CheckoutLoteIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +130,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assistente': {
+      id: '/assistente'
+      path: '/assistente'
+      fullPath: '/assistente'
+      preLoaderRoute: typeof AssistenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificados': {
+      id: '/certificados'
+      path: '/certificados'
+      fullPath: '/certificados'
+      preLoaderRoute: typeof CertificadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendedor': {
+      id: '/vendedor'
+      path: '/vendedor'
+      fullPath: '/vendedor'
+      preLoaderRoute: typeof VendedorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificado/$compraId': {
+      id: '/certificado/$compraId'
+      path: '/certificado/$compraId'
+      fullPath: '/certificado/$compraId'
+      preLoaderRoute: typeof CertificadoCompraIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/$loteId': {
+      id: '/checkout/$loteId'
+      path: '/checkout/$loteId'
+      fullPath: '/checkout/$loteId'
+      preLoaderRoute: typeof CheckoutLoteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistenteRoute: AssistenteRoute,
+  CertificadosRoute: CertificadosRoute,
+  MarketplaceRoute: MarketplaceRoute,
+  VendedorRoute: VendedorRoute,
+  CertificadoCompraIdRoute: CertificadoCompraIdRoute,
+  CheckoutLoteIdRoute: CheckoutLoteIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- App state (users, session, lots, purchases) lives in a localStorage-backed store in `src/lib/atmosfera/store.ts`; this is a browser-only demo with no backend, so swap the store for Lovable Cloud before going multi-user.
+- Business rules (fee, Human-in-the-Loop threshold, audit scoring, orchestrator recommendation) are pure functions in `src/lib/atmosfera/regras.ts` with tests beside them; UI must call these instead of re-implementing math.
+- Audit agents (Firecrawl extractor, accounting auditor) and the buying assistant are simulated client-side; keep their output deterministic so tests stay stable.
