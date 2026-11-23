@@ -73,7 +73,7 @@ function Campo({ rotulo, valor, mono = true, copiavel = false }: { rotulo: strin
     <div className="flex items-start justify-between gap-3 border-b border-border py-2 text-sm last:border-0">
       <span className="shrink-0 text-muted-foreground">{rotulo}</span>
       <span className="flex min-w-0 items-center gap-1.5 text-right">
-        <span className={cn("break-all", mono ? "font-mono text-xs" : "font-medium")}>{valor}</span>
+        <span className={cn(mono ? "font-mono text-xs break-all" : "font-medium")}>{valor}</span>
         {copiavel && (
           <button type="button" onClick={() => copiar(valor, rotulo)} aria-label={`Copiar ${rotulo}`} className="text-muted-foreground hover:text-primary">
             <Copy className="size-3.5" />

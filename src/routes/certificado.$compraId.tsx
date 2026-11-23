@@ -5,7 +5,7 @@ import { RequerSessao } from "@/components/atmosfera/RequerSessao";
 import { SeloNota } from "@/components/atmosfera/SeloNota";
 import { Button } from "@/components/ui/button";
 import { formatarData, formatarNumero, formatarUSD } from "@/lib/atmosfera/formato";
-import { TAXA_PLATAFORMA } from "@/lib/atmosfera/regras";
+import { FORMAS_PAGAMENTO, TAXA_PLATAFORMA } from "@/lib/atmosfera/regras";
 import { useAtmosfera } from "@/lib/atmosfera/store";
 
 export const Route = createFileRoute("/certificado/$compraId")({
@@ -106,6 +106,18 @@ function Certificado({ compraId }: { compraId: string }) {
               <Linha rotulo={`Taxa plataforma (${(TAXA_PLATAFORMA * 100).toLocaleString("pt-BR")}%)`} valor={formatarUSD(c.taxa)} mono />
               <Linha rotulo="Total desembolsado" valor={formatarUSD(c.total)} mono />
               <Linha rotulo="Aprovação humana" valor={c.aprovacaoHumana ? "Sim (acima de US$ 10.000)" : "Não exigida"} />
+              {c.pagamento && (
+                <>
+                  <Linha
+                    rotulo="Forma de pagamento"
+                    valor={`${FORMAS_PAGAMENTO[c.pagamento.forma].nome}${c.pagamento.ultimos4 ? ` · final ${c.pagamento.ultimos4}` : ""}`}
+                  />
+                  {c.pagamento.valorBRL !== undefined && (
+                    <Linha rotulo="Valor liquidado em R$" valor={new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c.pagamento.valorBRL)} mono />
+                  )}
+                  <Linha rotulo="Conta garantia (Escrow)" valor={`${c.pagamento.escrowId} · liberada`} mono />
+                </>
+              )}
             </dl>
           </section>
 
