@@ -7,7 +7,7 @@ import {
   gerarHash,
   type ResultadoAuditoria,
 } from "./regras";
-import type { Compra, Lote, PagamentoConfirmado, Perfil, TipoProjeto, Usuario } from "./tipos";
+import type { Compra, Enquadramento, Lote, PagamentoConfirmado, Perfil, TipoProjeto, Usuario } from "./tipos";
 
 export interface Estado {
   hidratado: boolean;
@@ -139,6 +139,7 @@ export const acoes = {
     quantidade: number,
     aprovacaoHumana: boolean,
     pagamento: PagamentoConfirmado,
+    enquadramento: Enquadramento,
   ): Compra {
     exigirPagamentoConfirmado(pagamento);
     const atual = carregar();
@@ -173,6 +174,7 @@ export const acoes = {
       total: resumo.total,
       aprovacaoHumana: resumo.exigeAprovacaoHumana,
       pagamento,
+      enquadramento,
       hash: gerarHash(`compra|${id}|${loteId}|${comprador.id}|${quantidade}|${data}`),
       data,
     };

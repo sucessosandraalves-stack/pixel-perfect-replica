@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Lock, Pencil, ShieldCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { CabecalhoPagina } from "@/components/atmosfera/AppShell";
+import { SecaoEnquadramento } from "@/components/atmosfera/Enquadramento";
 import { PainelLiquidacao, SeletorPagamento } from "@/components/atmosfera/Liquidacao";
 import { RequerSessao } from "@/components/atmosfera/RequerSessao";
 import { SeloNota } from "@/components/atmosfera/SeloNota";
@@ -23,7 +24,7 @@ import {
   type DadosCartao,
 } from "@/lib/atmosfera/regras";
 import { acoes, useAtmosfera } from "@/lib/atmosfera/store";
-import type { FormaPagamento, PagamentoConfirmado, Usuario } from "@/lib/atmosfera/tipos";
+import type { Enquadramento, FormaPagamento, PagamentoConfirmado, Usuario } from "@/lib/atmosfera/tipos";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout/$loteId")({
@@ -69,6 +70,7 @@ function Checkout({ comprador, loteId, qtdInicial }: { comprador: Usuario; loteI
   const [aprovado, setAprovado] = useState(false);
   const [aprovador, setAprovador] = useState("");
   const [forma, setForma] = useState<FormaPagamento>("pix");
+  const [enquadramento, setEnquadramento] = useState<Enquadramento>({ finalidade: "compensacao", escopo: 1 });
   const [etapa, setEtapa] = useState<Etapa>("revisao");
   const [escrowId, setEscrowId] = useState("");
   const [cartao, setCartao] = useState<DadosCartao>(CARTAO_VAZIO);
@@ -119,7 +121,7 @@ function Checkout({ comprador, loteId, qtdInicial }: { comprador: Usuario; loteI
       if (forma === "cartao") pagamento.ultimos4 = cartao.numero.replace(/\D/g, "").slice(-4);
       if (forma === "pix") pagamento.valorBRL = gerarDadosPix(escrowId, r.total).valorBRL;
       try {
-        const compra = acoes.comprar(comprador, lote.id, q, r.exigeAprovacaoHumana ? aprovado : false, pagamento);
+        const compra = acoes.comprar(comprador, lote.id, q, r.exigeAprovacaoHumana ? aprovado : false, pagamento, enquadramento);
         setCartao(CARTAO_VAZIO);
         toast.success("Pagamento confirmado no Escrow. Certificado liberado!");
         navigate({ to: "/certificado/$compraId", params: { compraId: compra.id } });
@@ -200,6 +202,8 @@ function Checkout({ comprador, loteId, qtdInicial }: { comprador: Usuario; loteI
             </section>
           )}
 
+          <SecaoEnquadramento valor={enquadramento} onChange={setEnquadramento} bloqueado={bloqueado} subtotal={r.subtotal} taxa={r.taxa} quantidade={q} />
+
           <SeletorPagamento valor={forma} onChange={setForma} bloqueado={bloqueado} />
 
           <div ref={painelRef} className="scroll-mt-24">
@@ -224,6 +228,7 @@ function Checkout({ comprador, loteId, qtdInicial }: { comprador: Usuario; loteI
             <div className="flex justify-between"><dt className="text-deep-muted">{formatarNumero(q)} t × {formatarUSD(lote.precoTonelada)}</dt><dd></dd></div>
             <div className="flex justify-between"><dt className="text-deep-muted">Valor do vendedor</dt><dd className="font-mono">{formatarUSD(r.subtotal)}</dd></div>
             <div className="flex justify-between"><dt className="text-deep-muted">Taxa da plataforma ({(TAXA_PLATAFORMA * 100).toLocaleString("pt-BR")}%)</dt><dd className="font-mono">{formatarUSD(r.taxa)}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-deep-muted">Finalidade</dt><dd className="text-right">{enquadramento.finalidade === "compensacao" ? `Compensação · Escopo ${enquadramento.escopo ?? 1}` : "Carteira / Revenda"}</dd></div>
             <div className="flex justify-between"><dt className="text-deep-muted">Pagamento</dt><dd className="text-right">{FORMAS_PAGAMENTO[forma].nome}</dd></div>
             {escrowId && <div className="flex justify-between"><dt className="text-deep-muted">Conta garantia</dt><dd className="font-mono">{escrowId}</dd></div>}
             <div className="border-t border-deep-foreground/15 pt-3">

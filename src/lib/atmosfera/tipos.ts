@@ -52,6 +52,15 @@ export interface PagamentoConfirmado {
   valorBRL?: number;
 }
 
+export type FinalidadeContabil = "compensacao" | "carteira";
+export type Escopo = 1 | 2 | 3;
+
+export interface Enquadramento {
+  finalidade: FinalidadeContabil;
+  /** Escopo de emissões compensado, apenas para compensação. */
+  escopo?: Escopo;
+}
+
 export interface Compra {
   id: string;
   loteId: string;
@@ -75,6 +84,7 @@ export interface Compra {
   total: number;
   aprovacaoHumana: boolean;
   pagamento?: PagamentoConfirmado;
+  enquadramento?: Enquadramento;
   hash: string;
   data: string;
 }

@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Printer, ShieldCheck } from "lucide-react";
+import { QuadroContabil } from "@/components/atmosfera/Enquadramento";
 import { Marca } from "@/components/atmosfera/Marca";
 import { RequerSessao } from "@/components/atmosfera/RequerSessao";
 import { SeloNota } from "@/components/atmosfera/SeloNota";
 import { Button } from "@/components/ui/button";
 import { formatarData, formatarNumero, formatarUSD } from "@/lib/atmosfera/formato";
-import { FORMAS_PAGAMENTO, TAXA_PLATAFORMA } from "@/lib/atmosfera/regras";
+import { FINALIDADES, FORMAS_PAGAMENTO, TAXA_PLATAFORMA } from "@/lib/atmosfera/regras";
 import { useAtmosfera } from "@/lib/atmosfera/store";
 
 export const Route = createFileRoute("/certificado/$compraId")({
@@ -49,6 +50,7 @@ function Certificado({ compraId }: { compraId: string }) {
     );
   }
 
+  const carteira = c.enquadramento?.finalidade === "carteira";
   const codigo = `ATM-${c.hash.slice(0, 4).toUpperCase()}-${c.hash.slice(4, 8).toUpperCase()}-${c.hash.slice(8, 12).toUpperCase()}`;
 
   return (
@@ -69,9 +71,9 @@ function Certificado({ compraId }: { compraId: string }) {
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
               <Marca claro />
-              <p className="eyebrow mt-6 text-gold">Certificado Digital de Compensação</p>
+              <p className="eyebrow mt-6 text-gold">{carteira ? "Certificado Digital de Aquisição" : "Certificado Digital de Compensação"}</p>
               <h1 className="mt-2 text-3xl font-medium md:text-4xl">
-                {formatarNumero(c.quantidade)} toneladas de CO₂e compensadas
+                {formatarNumero(c.quantidade)} toneladas de CO₂e {carteira ? "mantidas em carteira" : "compensadas"}
               </h1>
               <p className="mt-2 text-deep-foreground/80">em nome de <span className="font-semibold text-deep-foreground">{c.compradorNome}</span></p>
             </div>
@@ -121,11 +123,26 @@ function Certificado({ compraId }: { compraId: string }) {
             </dl>
           </section>
 
-          <section className="rounded-xl bg-muted p-5 md:col-span-2">
+          {c.enquadramento && (
+            <section className="break-inside-avoid md:col-span-2">
+              <h2 className="eyebrow mb-1 font-mono text-primary">Enquadramento Contábil Automático (IFRS S2 / CPC)</h2>
+              <p className="mb-3 text-sm">
+                Finalidade: <span className="font-semibold">{FINALIDADES[c.enquadramento.finalidade].nome}</span>
+                {c.enquadramento.escopo && <> · Escopo {c.enquadramento.escopo}</>}
+              </p>
+              <QuadroContabil enquadramento={c.enquadramento} subtotal={c.subtotal} taxa={c.taxa} quantidade={c.quantidade} />
+            </section>
+          )}
+
+          <section className="break-inside-avoid rounded-xl bg-muted p-5 md:col-span-2">
             <div className="grid gap-4 text-sm md:grid-cols-3">
               <div>
                 <p className="eyebrow text-muted-foreground">Classificação IFRS S2</p>
-                <p className="mt-1">Créditos de carbono usados para atingir meta climática (§ 36(e)) — compensação de emissões.</p>
+                <p className="mt-1">
+                  {carteira
+                    ? "Créditos de carbono mantidos em carteira, ainda não aposentados — divulgar como créditos planejados (§ 36(e))."
+                    : "Créditos de carbono usados para atingir meta climática (§ 36(e)) — compensação de emissões."}
+                </p>
               </div>
               <div>
                 <p className="eyebrow text-muted-foreground">Ajuste correspondente</p>

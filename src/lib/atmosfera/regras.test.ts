@@ -6,6 +6,7 @@ import {
   calcularResumo,
   exigirPagamentoConfirmado,
   gerarDadosPix,
+  gerarLancamentos,
   validarCartao,
   interpretarPedido,
   recomendarCombinacao,
@@ -128,5 +129,28 @@ describe("Pagamento via conta garantia (Escrow)", () => {
       new Date("2026-11-22T12:00:00Z"),
     );
     expect(erro).toBeNull();
+  });
+});
+
+describe("Enquadramento contábil automático", () => {
+  const { subtotal, taxa, total } = calcularResumo(100, 20); // 2.000 + 50
+
+  it("compensação debita Despesa Ambiental e credita Caixa / Escrow", () => {
+    const l = gerarLancamentos({ finalidade: "compensacao", escopo: 1 }, subtotal, taxa, 100);
+    expect(l[0]?.debito.nome).toBe("Despesa Ambiental / Sustentabilidade");
+    expect(l[0]?.credito.nome).toBe("Caixa / Conta Garantia Escrow");
+    expect(l[0]?.valor).toBe(2000);
+  });
+  it("carteira debita Estoque de Créditos de Carbono e credita Caixa / Escrow", () => {
+    const l = gerarLancamentos({ finalidade: "carteira" }, subtotal, taxa, 100);
+    expect(l[0]?.debito.nome).toBe("Ativo Circulante — Estoque de Créditos de Carbono");
+    expect(l[0]?.credito.nome).toBe("Caixa / Conta Garantia Escrow");
+  });
+  it("inclui lançamento da taxa de 2,5% e fecha débitos = total pago", () => {
+    for (const finalidade of ["compensacao", "carteira"] as const) {
+      const l = gerarLancamentos({ finalidade }, subtotal, taxa, 100);
+      expect(l[1]?.valor).toBe(50);
+      expect(l.reduce((s, x) => s + x.valor, 0)).toBe(total);
+    }
   });
 });

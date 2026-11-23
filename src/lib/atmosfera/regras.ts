@@ -1,4 +1,4 @@
-import type { FormaPagamento, Lote, TipoProjeto } from "./tipos";
+import type { Enquadramento, FinalidadeContabil, FormaPagamento, Lote, TipoProjeto } from "./tipos";
 
 /** Taxa transparente da plataforma sobre o valor pago ao vendedor. */
 export const TAXA_PLATAFORMA = 0.025;
@@ -322,4 +322,71 @@ export function validarCartao(c: DadosCartao, hoje = new Date()): string | null 
 export function exigirPagamentoConfirmado(pagamento: { confirmado: boolean } | null | undefined) {
   if (!pagamento || !pagamento.confirmado)
     throw new Error("Pagamento ainda não confirmado na conta garantia (Escrow).");
+}
+
+// ---------- Enquadramento contábil automático (IFRS S2 / CPC) ----------
+
+export const FINALIDADES: Record<FinalidadeContabil, { nome: string; norma: string }> = {
+  compensacao: {
+    nome: "Compensação / Aposentadoria Imediata",
+    norma: "IFRS S2 § 36(e) · CPC 00 (R2) — consumo no período, reconhecido como despesa",
+  },
+  carteira: {
+    nome: "Manutenção em Carteira / Revenda",
+    norma: "CPC 16 (R1) / IAS 2 — estoque mantido para venda; taxa integra o custo de aquisição",
+  },
+};
+
+export const CONTAS = {
+  despesaAmbiental: { codigo: "3.2.1.05", nome: "Despesa Ambiental / Sustentabilidade" },
+  despesaIntermediacao: { codigo: "3.2.1.06", nome: "Despesa com Taxa de Intermediação" },
+  estoqueCreditos: { codigo: "1.1.4.07", nome: "Ativo Circulante — Estoque de Créditos de Carbono" },
+  caixaEscrow: { codigo: "1.1.1.03", nome: "Caixa / Conta Garantia Escrow" },
+} as const;
+
+export interface Lancamento {
+  historico: string;
+  debito: { codigo: string; nome: string };
+  credito: { codigo: string; nome: string };
+  valor: number;
+}
+
+export function gerarLancamentos(
+  enquadramento: Enquadramento,
+  subtotal: number,
+  taxa: number,
+  quantidade: number,
+): Lancamento[] {
+  const t = `${quantidade.toLocaleString("pt-BR")} tCO₂e`;
+  if (enquadramento.finalidade === "compensacao") {
+    const escopo = enquadramento.escopo ? ` — Escopo ${enquadramento.escopo}` : "";
+    return [
+      {
+        historico: `Aposentadoria de ${t} para compensação${escopo}`,
+        debito: CONTAS.despesaAmbiental,
+        credito: CONTAS.caixaEscrow,
+        valor: subtotal,
+      },
+      {
+        historico: `Taxa de intermediação da plataforma (${(TAXA_PLATAFORMA * 100).toLocaleString("pt-BR")}%)`,
+        debito: CONTAS.despesaIntermediacao,
+        credito: CONTAS.caixaEscrow,
+        valor: taxa,
+      },
+    ];
+  }
+  return [
+    {
+      historico: `Aquisição de ${t} para carteira / revenda`,
+      debito: CONTAS.estoqueCreditos,
+      credito: CONTAS.caixaEscrow,
+      valor: subtotal,
+    },
+    {
+      historico: `Taxa de intermediação (${(TAXA_PLATAFORMA * 100).toLocaleString("pt-BR")}%) incorporada ao custo`,
+      debito: CONTAS.estoqueCreditos,
+      credito: CONTAS.caixaEscrow,
+      valor: taxa,
+    },
+  ];
 }
