@@ -209,7 +209,8 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .no-print {
+  .no-print,
+  [data-sonner-toaster] {
     display: none !important;
   }
   body {
