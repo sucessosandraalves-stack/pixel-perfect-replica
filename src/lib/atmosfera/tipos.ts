@@ -1,4 +1,4 @@
-export type Perfil = "vendedor" | "comprador";
+export type Perfil = "vendedor" | "comprador" | "admin";
 
 export const TIPOS_PROJETO = [
   "Reflorestamento",
@@ -61,6 +61,22 @@ export interface Enquadramento {
   escopo?: Escopo;
 }
 
+export type StatusLiquidacao = "retido_escrow" | "liquidado";
+
+export interface RegistroAuditoria {
+  id: string;
+  data: string;
+  projeto: string;
+  vendedorNome: string;
+  registro: string;
+  certificadora: string;
+  nota: number;
+  status: "aprovada" | "reprovada";
+  duplaContagem: boolean;
+  motivoReprovacao?: string;
+  hash: string;
+}
+
 export interface Compra {
   id: string;
   loteId: string;
@@ -85,6 +101,7 @@ export interface Compra {
   aprovacaoHumana: boolean;
   pagamento?: PagamentoConfirmado;
   enquadramento?: Enquadramento;
+  statusLiquidacao?: StatusLiquidacao;
   hash: string;
   data: string;
 }

@@ -48,7 +48,20 @@ const ATUACOES: Record<Perfil, string[]> = {
     "Instituição financeira",
     "Trading / intermediário",
   ],
+  admin: ["Gestão da plataforma", "Compliance e auditoria", "Financeiro / Escrow"],
 };
+
+const ROTULOS_PERFIL: Record<Perfil, string> = {
+  vendedor: "Vendedor",
+  comprador: "Comprador",
+  admin: "Admin ATMOSFERA (Gestão)",
+};
+
+const DESTINOS = {
+  vendedor: "/vendedor",
+  comprador: "/marketplace",
+  admin: "/admin",
+} as const;
 
 const PAISES = ["Brasil", "Colômbia", "Peru", "México", "Quênia", "Índia", "Indonésia", "Portugal", "Estados Unidos"];
 
@@ -59,7 +72,7 @@ function Onboarding() {
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const destino = (p: Perfil) => (p === "vendedor" ? "/vendedor" : "/marketplace");
+  const destino = (p: Perfil) => DESTINOS[p];
 
   function enviar(e: FormEvent) {
     e.preventDefault();
@@ -115,8 +128,8 @@ function Onboarding() {
           <p className="eyebrow text-primary">Acesso à plataforma</p>
           <h2 className="mt-2 text-3xl font-medium">Como você quer entrar?</h2>
 
-          <div role="tablist" className="mt-6 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-            {(["vendedor", "comprador"] as const).map((p) => (
+          <div role="tablist" className="mt-6 grid grid-cols-1 gap-1 rounded-lg bg-muted p-1 sm:grid-cols-3">
+            {(["vendedor", "comprador", "admin"] as const).map((p) => (
               <button
                 key={p}
                 role="tab"
@@ -130,8 +143,8 @@ function Onboarding() {
                   perfil === p ? "bg-card text-primary shadow-soft" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {p === "vendedor" ? <Sprout className="size-4" /> : <Building2 className="size-4" />}
-                Entrar como {p === "vendedor" ? "Vendedor" : "Comprador"}
+                {p === "vendedor" ? <Sprout className="size-4 shrink-0" /> : p === "comprador" ? <Building2 className="size-4 shrink-0" /> : <ShieldCheck className="size-4 shrink-0" />}
+                <span>Entrar como {ROTULOS_PERFIL[p]}</span>
               </button>
             ))}
           </div>
@@ -139,7 +152,7 @@ function Onboarding() {
           <form onSubmit={enviar} className="mt-6 space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="nome">Nome / Razão Social</Label>
-              <Input id="nome" required value={form.nome} onChange={(e) => set("nome")(e.target.value)} placeholder={perfil === "vendedor" ? "Fazenda Boa Esperança" : "Empresa Exemplo S.A."} />
+              <Input id="nome" required value={form.nome} onChange={(e) => set("nome")(e.target.value)} placeholder={perfil === "vendedor" ? "Fazenda Boa Esperança" : perfil === "comprador" ? "Empresa Exemplo S.A." : "Gestão ATMOSFERA"} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="documento">CPF / CNPJ</Label>
@@ -174,7 +187,7 @@ function Onboarding() {
               </Select>
             </div>
             <Button type="submit" size="lg" className="w-full">
-              Criar conta de {perfil === "vendedor" ? "Vendedor" : "Comprador"}
+              Criar conta de {ROTULOS_PERFIL[perfil]}
             </Button>
           </form>
 
@@ -187,6 +200,9 @@ function Onboarding() {
             </Button>
             <Button variant="deep" onClick={() => demo("comprador")}>
               <Building2 /> Acesso Rápido Demo (Comprador)
+            </Button>
+            <Button variant="outline" onClick={() => demo("admin")}>
+              <ShieldCheck /> Acesso Rápido Demo (Admin)
             </Button>
           </div>
         </div>

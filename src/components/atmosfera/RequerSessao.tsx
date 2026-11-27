@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { acoes, useSessao } from "@/lib/atmosfera/store";
 import type { Perfil, Usuario } from "@/lib/atmosfera/tipos";
 
+const PERFIS: Record<Perfil, string> = {
+  vendedor: "Vendedor",
+  comprador: "Comprador",
+  admin: "Admin ATMOSFERA",
+};
+
 export function RequerSessao({
   perfil,
   children,
@@ -40,15 +46,14 @@ export function RequerSessao({
   }
 
   if (perfil && usuario.perfil !== perfil) {
-    const nome = perfil === "vendedor" ? "Vendedor" : "Comprador";
+    const nome = PERFIS[perfil];
     return (
       <AppShell>
         <div className="mx-auto max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-soft">
           <p className="eyebrow text-primary">Acesso restrito</p>
           <h2 className="mt-2 text-2xl font-medium">Esta área é do perfil {nome}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Você está como {usuario.perfil === "vendedor" ? "Vendedor" : "Comprador"}. Troque para o
-            perfil {nome} de demonstração para continuar.
+            Você está como {PERFIS[usuario.perfil]}. Troque para o perfil {nome} de demonstração para continuar.
           </p>
           <Button className="mt-6" onClick={() => acoes.entrarDemo(perfil)}>
             Entrar como {nome} demo

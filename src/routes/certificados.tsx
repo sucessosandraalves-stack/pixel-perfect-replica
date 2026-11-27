@@ -25,21 +25,29 @@ function Certificados({ usuario }: { usuario: Usuario }) {
   const todas = useAtmosfera((e) => e.compras);
   const lotesDoVendedor = useAtmosfera((e) => e.lotes.filter((l) => l.vendedorId === usuario.id).map((l) => l.id));
   const compras =
-    usuario.perfil === "comprador"
-      ? todas.filter((c) => c.compradorId === usuario.id)
-      : todas.filter((c) => lotesDoVendedor.includes(c.loteId));
+    usuario.perfil === "admin"
+      ? todas
+      : usuario.perfil === "comprador"
+        ? todas.filter((c) => c.compradorId === usuario.id)
+        : todas.filter((c) => lotesDoVendedor.includes(c.loteId));
   const totalT = compras.reduce((s, c) => s + c.quantidade, 0);
-  const totalUSD = compras.reduce((s, c) => s + (usuario.perfil === "comprador" ? c.total : c.subtotal), 0);
+  const totalUSD = compras.reduce((s, c) => s + (usuario.perfil === "vendedor" ? c.subtotal : c.total), 0);
+  const titulo =
+    usuario.perfil === "admin"
+      ? "Certificados emitidos na plataforma"
+      : usuario.perfil === "comprador"
+        ? "Meus certificados"
+        : "Certificados emitidos dos meus lotes";
 
   return (
     <>
       <CabecalhoPagina
-        eyebrow={usuario.perfil === "comprador" ? "Compensações" : "Vendas liquidadas"}
-        titulo={usuario.perfil === "comprador" ? "Meus certificados" : "Certificados emitidos dos meus lotes"}
+        eyebrow={usuario.perfil === "admin" ? "Visão consolidada" : usuario.perfil === "comprador" ? "Compensações" : "Vendas liquidadas"}
+        titulo={titulo}
         acao={
           <div className="flex gap-6 text-right">
             <div><p className="font-display text-2xl">{formatarNumero(totalT)}</p><p className="eyebrow normal-case text-muted-foreground">tCO₂e</p></div>
-            <div><p className="font-display text-2xl">{formatarUSD(totalUSD)}</p><p className="eyebrow text-muted-foreground">{usuario.perfil === "comprador" ? "investido" : "recebido"}</p></div>
+            <div><p className="font-display text-2xl">{formatarUSD(totalUSD)}</p><p className="eyebrow text-muted-foreground">{usuario.perfil === "admin" ? "volume total" : usuario.perfil === "comprador" ? "investido" : "recebido"}</p></div>
           </div>
         }
       />
@@ -61,7 +69,9 @@ function Certificados({ usuario }: { usuario: Usuario }) {
               <FileCheck2 className="size-5 text-primary" />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{c.projeto}</p>
-                <p className="text-xs text-muted-foreground">{formatarData(c.data)} · {usuario.perfil === "comprador" ? c.vendedorNome : c.compradorNome}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatarData(c.data)} · {usuario.perfil === "admin" ? `${c.vendedorNome} → ${c.compradorNome}` : usuario.perfil === "comprador" ? c.vendedorNome : c.compradorNome}
+                </p>
               </div>
               <span className="font-mono text-xs text-muted-foreground">{encurtarHash(c.hash)}</span>
               <span className="w-28 text-right">{formatarNumero(c.quantidade)} t</span>

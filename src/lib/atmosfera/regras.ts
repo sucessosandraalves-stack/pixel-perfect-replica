@@ -1,4 +1,4 @@
-import type { Enquadramento, FinalidadeContabil, FormaPagamento, Lote, TipoProjeto } from "./tipos";
+import type { Compra, Enquadramento, FinalidadeContabil, FormaPagamento, Lote, RegistroAuditoria, TipoProjeto } from "./tipos";
 
 /** Taxa transparente da plataforma sobre o valor pago ao vendedor. */
 export const TAXA_PLATAFORMA = 0.025;
@@ -322,6 +322,21 @@ export function validarCartao(c: DadosCartao, hoje = new Date()): string | null 
 export function exigirPagamentoConfirmado(pagamento: { confirmado: boolean } | null | undefined) {
   if (!pagamento || !pagamento.confirmado)
     throw new Error("Pagamento ainda não confirmado na conta garantia (Escrow).");
+}
+
+// ---------- Indicadores executivos da plataforma ----------
+
+export function calcularIndicadoresPlataforma(compras: Compra[], auditorias: RegistroAuditoria[]) {
+  return {
+    gmv: arred(compras.reduce((s, c) => s + c.subtotal, 0)),
+    receitaLiquida: arred(compras.reduce((s, c) => s + c.taxa, 0)),
+    escrowRetido: arred(
+      compras
+        .filter((c) => c.statusLiquidacao === "retido_escrow")
+        .reduce((s, c) => s + c.total, 0),
+    ),
+    lotesAuditados: auditorias.length,
+  };
 }
 
 // ---------- Enquadramento contábil automático (IFRS S2 / CPC) ----------

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { lotesIniciais } from "./dados-iniciais";
+import { auditoriasIniciais, comprasIniciais, lotesIniciais } from "./dados-iniciais";
 import {
   abaterEstoque,
   auditarLote,
   calcularResumo,
+  calcularIndicadoresPlataforma,
   exigirPagamentoConfirmado,
   gerarDadosPix,
   gerarLancamentos,
@@ -129,6 +130,23 @@ describe("Pagamento via conta garantia (Escrow)", () => {
       new Date("2026-11-22T12:00:00Z"),
     );
     expect(erro).toBeNull();
+  });
+});
+
+describe("Indicadores do Painel Executivo", () => {
+  const indicadores = calcularIndicadoresPlataforma(comprasIniciais(), auditoriasIniciais());
+
+  it("soma o GMV pelo valor bruto das transações", () => {
+    expect(indicadores.gmv).toBe(33730);
+  });
+  it("soma a receita líquida da comissão de 2,5%", () => {
+    expect(indicadores.receitaLiquida).toBe(843.25);
+  });
+  it("retém em Escrow somente o total das liquidações pendentes", () => {
+    expect(indicadores.escrowRetido).toBe(13417.25);
+  });
+  it("conta lotes auditados aprovados e reprovados", () => {
+    expect(indicadores.lotesAuditados).toBe(11);
   });
 });
 

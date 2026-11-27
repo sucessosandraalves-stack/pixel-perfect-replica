@@ -1,5 +1,5 @@
-import { gerarHash } from "./regras";
-import type { Lote, Usuario } from "./tipos";
+import { calcularResumo, gerarEscrowId, gerarHash } from "./regras";
+import type { Compra, FormaPagamento, Lote, RegistroAuditoria, StatusLiquidacao, Usuario } from "./tipos";
 
 export const VENDEDOR_DEMO: Usuario = {
   id: "u-vendedor-demo",
@@ -21,6 +21,17 @@ export const COMPRADOR_DEMO: Usuario = {
   email: "esg@horizonte.com.br",
   perfil: "comprador",
   atuacao: "Indústria (escopo 1 e 2)",
+};
+
+export const ADMIN_DEMO: Usuario = {
+  id: "u-admin-demo",
+  nome: "Gestão ATMOSFERA",
+  documento: "52.418.903/0001-27",
+  pais: "Brasil",
+  estado: "SP",
+  email: "gestao@atmosfera.eco.br",
+  perfil: "admin",
+  atuacao: "Gestão da plataforma",
 };
 
 type Semente = Omit<Lote, "hashAuditoria" | "quantidadeDisponivel" | "criadoEm"> & {
@@ -55,6 +66,7 @@ const sementes: Semente[] = [
     pais: "Brasil",
     tipo: "Agricultura Regenerativa",
     quantidadeTotal: 800,
+    disponivel: 500,
     precoTonelada: 19.8,
     registro: "https://registry.goldstandard.org/projects/details/GS1187",
     certificadora: "Gold Standard",
@@ -71,6 +83,7 @@ const sementes: Semente[] = [
     pais: "Brasil",
     tipo: "Captura de Metano",
     quantidadeTotal: 2500,
+    disponivel: 2250,
     precoTonelada: 11.2,
     registro: "VCS-1932",
     certificadora: "Verra (VCS)",
@@ -182,4 +195,154 @@ export function lotesIniciais(): Lote[] {
     hashAuditoria: gerarHash(`auditoria|${s.id}|${s.registro}|${s.nota}`),
     criadoEm: "2026-10-01T12:00:00.000Z",
   }));
+}
+
+interface SementeCompra {
+  id: string;
+  loteId: string;
+  quantidade: number;
+  data: string;
+  compradorId: string;
+  compradorNome: string;
+  compradorDocumento: string;
+  forma: FormaPagamento;
+  status: StatusLiquidacao;
+  finalidade: "compensacao" | "carteira";
+}
+
+const sementesCompras: SementeCompra[] = [
+  {
+    id: "cmp-demo-001",
+    loteId: "lote-001",
+    quantidade: 600,
+    data: "2026-11-18T14:30:00.000Z",
+    compradorId: COMPRADOR_DEMO.id,
+    compradorNome: COMPRADOR_DEMO.nome,
+    compradorDocumento: COMPRADOR_DEMO.documento,
+    forma: "pix",
+    status: "liquidado",
+    finalidade: "compensacao",
+  },
+  {
+    id: "cmp-demo-002",
+    loteId: "lote-001",
+    quantidade: 420,
+    data: "2026-11-21T10:15:00.000Z",
+    compradorId: "u-c-02",
+    compradorNome: "Vale Verde Alimentos S.A.",
+    compradorDocumento: "11.222.333/0001-44",
+    forma: "swift",
+    status: "retido_escrow",
+    finalidade: "carteira",
+  },
+  {
+    id: "cmp-demo-003",
+    loteId: "lote-002",
+    quantidade: 300,
+    data: "2026-11-23T16:45:00.000Z",
+    compradorId: COMPRADOR_DEMO.id,
+    compradorNome: COMPRADOR_DEMO.nome,
+    compradorDocumento: COMPRADOR_DEMO.documento,
+    forma: "cartao",
+    status: "liquidado",
+    finalidade: "compensacao",
+  },
+  {
+    id: "cmp-demo-004",
+    loteId: "lote-003",
+    quantidade: 250,
+    data: "2026-11-25T09:20:00.000Z",
+    compradorId: "u-c-04",
+    compradorNome: "AeroNorte Logística S.A.",
+    compradorDocumento: "22.333.444/0001-55",
+    forma: "pix",
+    status: "retido_escrow",
+    finalidade: "compensacao",
+  },
+];
+
+export function comprasIniciais(): Compra[] {
+  const lotes = lotesIniciais();
+  return sementesCompras.map((s) => {
+    const lote = lotes.find((l) => l.id === s.loteId);
+    if (!lote) throw new Error(`Lote de demonstração não encontrado: ${s.loteId}`);
+    const resumo = calcularResumo(s.quantidade, lote.precoTonelada);
+    return {
+      id: s.id,
+      loteId: lote.id,
+      compradorId: s.compradorId,
+      compradorNome: s.compradorNome,
+      compradorDocumento: s.compradorDocumento,
+      vendedorNome: lote.vendedorNome,
+      vendedorDocumento: lote.vendedorDocumento,
+      projeto: lote.projeto,
+      localizacao: lote.localizacao,
+      pais: lote.pais,
+      tipo: lote.tipo,
+      registro: lote.registro,
+      certificadora: lote.certificadora,
+      nota: lote.nota,
+      vintage: lote.vintage,
+      quantidade: s.quantidade,
+      precoTonelada: lote.precoTonelada,
+      subtotal: resumo.subtotal,
+      taxa: resumo.taxa,
+      total: resumo.total,
+      aprovacaoHumana: resumo.exigeAprovacaoHumana,
+      pagamento: {
+        forma: s.forma,
+        escrowId: gerarEscrowId(s.id),
+        confirmado: true,
+        confirmadoEm: s.data,
+      },
+      enquadramento: s.finalidade === "compensacao" ? { finalidade: s.finalidade, escopo: 1 } : { finalidade: s.finalidade },
+      statusLiquidacao: s.status,
+      hash: gerarHash(`compra|${s.id}|${lote.id}|${s.compradorId}|${s.quantidade}|${s.data}`),
+      data: s.data,
+    };
+  });
+}
+
+export function auditoriasIniciais(): RegistroAuditoria[] {
+  const aprovadas = lotesIniciais().map((lote, indice): RegistroAuditoria => ({
+    id: `aud-${lote.id}`,
+    data: new Date(Date.UTC(2026, 9, 1 + indice, 12)).toISOString(),
+    projeto: lote.projeto,
+    vendedorNome: lote.vendedorNome,
+    registro: lote.registro,
+    certificadora: lote.certificadora,
+    nota: lote.nota,
+    status: "aprovada",
+    duplaContagem: false,
+    hash: lote.hashAuditoria,
+  }));
+  const reprovadas: RegistroAuditoria[] = [
+    {
+      id: "aud-demo-reprovada-001",
+      data: "2026-11-24T11:40:00.000Z",
+      projeto: "Fazenda Boa Vista — Recuperação de Mata Ciliar",
+      vendedorNome: "Fazenda Boa Vista Ltda.",
+      registro: "VCS-2741",
+      certificadora: "Verra (VCS)",
+      nota: 25,
+      status: "reprovada",
+      duplaContagem: true,
+      motivoReprovacao: "Dupla contagem: o registro VCS-2741 já foi anunciado pela Fazenda Santa Clara Agropecuária Ltda.",
+      hash: gerarHash("auditoria|aud-demo-reprovada-001|VCS-2741|25"),
+    },
+    {
+      id: "aud-demo-reprovada-002",
+      data: "2026-11-26T15:10:00.000Z",
+      projeto: "Solar Horizonte Fase II",
+      vendedorNome: "Solar Horizonte Participações S.A.",
+      registro: "GS-2290",
+      certificadora: "Gold Standard",
+      nota: 25,
+      status: "reprovada",
+      duplaContagem: true,
+      motivoReprovacao: "Dupla contagem: o registro GS-2290 já foi anunciado pela Ventos do Sertão Energia.",
+      hash: gerarHash("auditoria|aud-demo-reprovada-002|GS-2290|25"),
+    },
+  ];
+  return [...aprovadas, ...reprovadas];
 }

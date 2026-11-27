@@ -1,5 +1,12 @@
 import { useSyncExternalStore } from "react";
-import { COMPRADOR_DEMO, VENDEDOR_DEMO, lotesIniciais } from "./dados-iniciais";
+import {
+  ADMIN_DEMO,
+  COMPRADOR_DEMO,
+  VENDEDOR_DEMO,
+  auditoriasIniciais,
+  comprasIniciais,
+  lotesIniciais,
+} from "./dados-iniciais";
 import {
   abaterEstoque,
   calcularResumo,
@@ -7,7 +14,16 @@ import {
   gerarHash,
   type ResultadoAuditoria,
 } from "./regras";
-import type { Compra, Enquadramento, Lote, PagamentoConfirmado, Perfil, TipoProjeto, Usuario } from "./tipos";
+import type {
+  Compra,
+  Enquadramento,
+  Lote,
+  PagamentoConfirmado,
+  Perfil,
+  RegistroAuditoria,
+  TipoProjeto,
+  Usuario,
+} from "./tipos";
 
 export interface Estado {
   hidratado: boolean;
@@ -15,6 +31,7 @@ export interface Estado {
   sessaoId: string | null;
   lotes: Lote[];
   compras: Compra[];
+  auditorias: RegistroAuditoria[];
 }
 
 const CHAVE = "atmosfera:v1";
@@ -22,10 +39,11 @@ const CHAVE = "atmosfera:v1";
 function estadoInicial(hidratado: boolean): Estado {
   return {
     hidratado,
-    usuarios: [VENDEDOR_DEMO, COMPRADOR_DEMO],
+    usuarios: [VENDEDOR_DEMO, COMPRADOR_DEMO, ADMIN_DEMO],
     sessaoId: null,
     lotes: lotesIniciais(),
-    compras: [],
+    compras: comprasIniciais(),
+    auditorias: auditoriasIniciais(),
   };
 }
 
@@ -38,8 +56,19 @@ function carregar(): Estado {
   try {
     const bruto = window.localStorage.getItem(CHAVE);
     if (bruto) {
-      const salvo = JSON.parse(bruto) as Omit<Estado, "hidratado">;
-      estado = { ...salvo, hidratado: true };
+      const salvo = JSON.parse(bruto) as Partial<Omit<Estado, "hidratado">>;
+      const usuarios = [...(salvo.usuarios ?? [])];
+      for (const demo of [VENDEDOR_DEMO, COMPRADOR_DEMO, ADMIN_DEMO]) {
+        if (!usuarios.some((u) => u.id === demo.id)) usuarios.push(demo);
+      }
+      estado = {
+        hidratado: true,
+        usuarios,
+        sessaoId: salvo.sessaoId ?? null,
+        lotes: salvo.lotes ?? lotesIniciais(),
+        compras: salvo.compras ?? comprasIniciais(),
+        auditorias: salvo.auditorias ?? auditoriasIniciais(),
+      };
       return estado;
     }
   } catch {
@@ -89,14 +118,53 @@ export const acoes = {
     return usuario;
   },
   entrarDemo(perfil: Perfil) {
-    const id = perfil === "vendedor" ? VENDEDOR_DEMO.id : COMPRADOR_DEMO.id;
-    definir((e) => ({ ...e, sessaoId: id }));
+    const ids: Record<Perfil, string> = {
+      vendedor: VENDEDOR_DEMO.id,
+      comprador: COMPRADOR_DEMO.id,
+      admin: ADMIN_DEMO.id,
+    };
+    definir((e) => ({
+      ...e,
+      sessaoId: ids[perfil],
+      compras: perfil === "admin" && e.compras.length === 0 ? comprasIniciais() : e.compras,
+      auditorias: perfil === "admin" && e.auditorias.length === 0 ? auditoriasIniciais() : e.auditorias,
+    }));
   },
   sair() {
     definir((e) => ({ ...e, sessaoId: null }));
   },
   restaurarDemo() {
     definir((e) => ({ ...estadoInicial(true), sessaoId: e.sessaoId }));
+  },
+  registrarAuditoria(
+    vendedor: Usuario,
+    dados: { projeto: string; registro: string },
+    resultado: ResultadoAuditoria,
+  ): RegistroAuditoria {
+    const id = novoId("aud");
+    const duplaContagem = resultado.verificacoes.some(
+      (v) => v.rotulo.startsWith("Dupla contagem") && !v.ok,
+    );
+    const falha = resultado.verificacoes.find((v) => !v.ok);
+    const registro: RegistroAuditoria = {
+      id,
+      data: new Date().toISOString(),
+      projeto: dados.projeto,
+      vendedorNome: vendedor.nome,
+      registro: dados.registro,
+      certificadora: resultado.certificadora,
+      nota: resultado.nota,
+      status: resultado.aprovado ? "aprovada" : "reprovada",
+      duplaContagem,
+      hash: gerarHash(`auditoria|${id}|${dados.registro}|${resultado.nota}`),
+    };
+    if (!resultado.aprovado) {
+      registro.motivoReprovacao = duplaContagem
+        ? `Dupla contagem: ${falha?.detalhe ?? "registro já anunciado na plataforma."}`
+        : (falha?.detalhe ?? "O lote não atingiu os critérios mínimos de integridade.");
+    }
+    definir((e) => ({ ...e, auditorias: [registro, ...e.auditorias] }));
+    return registro;
   },
   publicarLote(
     vendedor: Usuario,
@@ -175,6 +243,7 @@ export const acoes = {
       aprovacaoHumana: resumo.exigeAprovacaoHumana,
       pagamento,
       enquadramento,
+      statusLiquidacao: "liquidado",
       hash: gerarHash(`compra|${id}|${loteId}|${comprador.id}|${quantidade}|${data}`),
       data,
     };

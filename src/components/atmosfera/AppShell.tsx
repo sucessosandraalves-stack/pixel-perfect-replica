@@ -1,9 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { Bot, FileCheck2, LogOut, Store, Leaf, ArrowLeftRight } from "lucide-react";
+import { Bot, FileCheck2, LayoutDashboard, LogOut, Store, Leaf, ArrowLeftRight } from "lucide-react";
 import { Marca } from "./Marca";
 import { Button } from "@/components/ui/button";
 import { acoes, useSessao } from "@/lib/atmosfera/store";
+import type { Perfil } from "@/lib/atmosfera/tipos";
 import { cn } from "@/lib/utils";
 
 const ABAS = [
@@ -11,21 +12,40 @@ const ABAS = [
   { to: "/marketplace", rotulo: "Marketplace", icone: Store },
   { to: "/assistente", rotulo: "Assistente IA", icone: Bot },
   { to: "/certificados", rotulo: "Certificados", icone: FileCheck2 },
+  { to: "/admin", rotulo: "Painel Executivo", icone: LayoutDashboard },
 ] as const;
+
+const PERFIS: Record<Perfil, string> = {
+  vendedor: "Vendedor",
+  comprador: "Comprador",
+  admin: "Admin",
+};
+
+const PROXIMO_PERFIL: Record<Perfil, Perfil> = {
+  vendedor: "comprador",
+  comprador: "admin",
+  admin: "vendedor",
+};
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { usuario } = useSessao();
   const navigate = useNavigate();
+  const abas = ABAS.filter((aba) =>
+    usuario?.perfil === "admin"
+      ? aba.to === "/admin" || aba.to === "/marketplace" || aba.to === "/certificados"
+      : aba.to !== "/admin",
+  );
+  const proximoPerfil = usuario ? PROXIMO_PERFIL[usuario.perfil] : "vendedor";
 
   return (
     <div className="min-h-screen bg-background">
       <header className="no-print sticky top-0 z-30 bg-gradient-deep text-deep-foreground shadow-lift">
         <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3 md:px-8">
-          <Link to="/marketplace" aria-label="ATMOSFERA — início">
+          <Link to={usuario?.perfil === "admin" ? "/admin" : "/marketplace"} aria-label="ATMOSFERA — início">
             <Marca claro />
           </Link>
           <nav className="hidden flex-1 items-center gap-1 lg:flex">
-            {ABAS.map(({ to, rotulo, icone: Icone }) => (
+            {abas.map(({ to, rotulo, icone: Icone }) => (
               <Link
                 key={to}
                 to={to}
@@ -41,18 +61,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             {usuario && (
               <div className="hidden text-right md:block">
                 <p className="max-w-56 truncate text-sm font-medium">{usuario.nome}</p>
-                <p className="eyebrow text-gold">
-                  {usuario.perfil === "vendedor" ? "Vendedor" : "Comprador"}
-                </p>
+                <p className="eyebrow text-gold">{PERFIS[usuario.perfil]}</p>
               </div>
             )}
             {usuario && (
               <Button
                 variant="ghostDeep"
                 size="icon"
-                title={`Trocar para ${usuario.perfil === "vendedor" ? "Comprador" : "Vendedor"} demo`}
+                title={`Trocar para ${PERFIS[proximoPerfil]} demo`}
                 aria-label="Trocar perfil demo"
-                onClick={() => acoes.entrarDemo(usuario.perfil === "vendedor" ? "comprador" : "vendedor")}
+                onClick={() => acoes.entrarDemo(proximoPerfil)}
               >
                 <ArrowLeftRight />
               </Button>
@@ -72,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-4 pb-2 lg:hidden">
-          {ABAS.map(({ to, rotulo, icone: Icone }) => (
+          {abas.map(({ to, rotulo, icone: Icone }) => (
             <Link
               key={to}
               to={to}

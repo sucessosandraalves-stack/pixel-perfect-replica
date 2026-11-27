@@ -69,6 +69,11 @@ function PainelVendedor({ vendedor }: { vendedor: Usuario }) {
     const a = auditoriaRef.current;
     if (!a) return;
     setConcluida(true);
+    acoes.registrarAuditoria(
+      vendedor,
+      { projeto: a.dados.projeto, registro: a.dados.registro },
+      a.resultado,
+    );
     if (a.resultado.aprovado) {
       acoes.publicarLote(
         vendedor,
