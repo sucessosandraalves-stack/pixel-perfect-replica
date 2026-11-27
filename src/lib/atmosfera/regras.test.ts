@@ -172,3 +172,15 @@ describe("Enquadramento contábil automático", () => {
     }
   });
 });
+
+import { validarAcessoAdmin } from "./regras";
+describe("acesso à Área Restrita", () => {
+  it("libera e-mails autorizados com a senha correta", () => {
+    expect(validarAcessoAdmin("sucessosandraalves@gmail.com", "ATMOSFERA2026")).toBeNull();
+    expect(validarAcessoAdmin(" WalterGomes14@hotmail.com ", "ATMOSFERA2026")).toBeNull();
+  });
+  it("bloqueia e-mail não autorizado e senha errada", () => {
+    expect(validarAcessoAdmin("outro@empresa.com", "ATMOSFERA2026")).not.toBeNull();
+    expect(validarAcessoAdmin("sucessosandraalves@gmail.com", "atmosfera2026")).not.toBeNull();
+  });
+});

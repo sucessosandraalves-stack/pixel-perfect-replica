@@ -405,3 +405,13 @@ export function gerarLancamentos(
     },
   ];
 }
+
+/** E-mails autorizados a entrar na Área Restrita (Gestão). Demonstração: verificação feita no navegador. */
+export const EMAILS_ADMIN_AUTORIZADOS = ["sucessosandraalves@gmail.com", "waltergomes14@hotmail.com"];
+export const SENHA_ADMIN_DEMO = "ATMOSFERA2026";
+
+export function validarAcessoAdmin(email: string, senha: string): string | null {
+  if (!EMAILS_ADMIN_AUTORIZADOS.includes(email.trim().toLowerCase())) return "E-mail não autorizado para a Área Restrita.";
+  if (senha !== SENHA_ADMIN_DEMO) return "Senha incorreta.";
+  return null;
+}

@@ -7,8 +7,10 @@ import { Marca } from "@/components/atmosfera/Marca";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { acoes } from "@/lib/atmosfera/store";
+import { validarAcessoAdmin } from "@/lib/atmosfera/regras";
 import type { Perfil } from "@/lib/atmosfera/tipos";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +70,20 @@ const PAISES = ["Brasil", "Colômbia", "Peru", "México", "Quênia", "Índia", "
 function Onboarding() {
   const navigate = useNavigate();
   const [perfil, setPerfil] = useState<Perfil>("vendedor");
+  const [restritoAberto, setRestritoAberto] = useState(false);
+  const [credenciais, setCredenciais] = useState({ email: "", senha: "" });
+  const [erroRestrito, setErroRestrito] = useState<string | null>(null);
+
+  function entrarRestrito(e: FormEvent) {
+    e.preventDefault();
+    const erro = validarAcessoAdmin(credenciais.email, credenciais.senha);
+    if (erro) {
+      setErroRestrito(erro);
+      return;
+    }
+    setRestritoAberto(false);
+    demo("admin");
+  }
   const [form, setForm] = useState({ nome: "", documento: "", pais: "Brasil", estado: "", email: "", atuacao: "" });
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -128,8 +144,8 @@ function Onboarding() {
           <p className="eyebrow text-primary">Acesso à plataforma</p>
           <h2 className="mt-2 text-3xl font-medium">Como você quer entrar?</h2>
 
-          <div role="tablist" className="mt-6 grid grid-cols-1 gap-1 rounded-lg bg-muted p-1 sm:grid-cols-3">
-            {(["vendedor", "comprador", "admin"] as const).map((p) => (
+          <div role="tablist" className="mt-6 grid grid-cols-1 gap-1 rounded-lg bg-muted p-1 sm:grid-cols-2">
+            {(["vendedor", "comprador"] as const).map((p) => (
               <button
                 key={p}
                 role="tab"
@@ -143,7 +159,7 @@ function Onboarding() {
                   perfil === p ? "bg-card text-primary shadow-soft" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {p === "vendedor" ? <Sprout className="size-4 shrink-0" /> : p === "comprador" ? <Building2 className="size-4 shrink-0" /> : <ShieldCheck className="size-4 shrink-0" />}
+                {p === "vendedor" ? <Sprout className="size-4 shrink-0" /> : <Building2 className="size-4 shrink-0" />}
                 <span>Entrar como {ROTULOS_PERFIL[p]}</span>
               </button>
             ))}
@@ -201,12 +217,44 @@ function Onboarding() {
             <Button variant="deep" onClick={() => demo("comprador")}>
               <Building2 /> Acesso Rápido Demo (Comprador)
             </Button>
-            <Button variant="outline" onClick={() => demo("admin")}>
-              <ShieldCheck /> Acesso Rápido Demo (Admin)
-            </Button>
           </div>
+
+          <footer className="mt-10 border-t border-border pt-4 text-center text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => {
+                setErroRestrito(null);
+                setCredenciais({ email: "", senha: "" });
+                setRestritoAberto(true);
+              }}
+              className="underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Área Restrita (Gestão)
+            </button>
+          </footer>
         </div>
       </section>
+
+      <Dialog open={restritoAberto} onOpenChange={setRestritoAberto}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Área Restrita (Gestão)</DialogTitle>
+            <DialogDescription>Acesso exclusivo à equipe autorizada da ATMOSFERA.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={entrarRestrito} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email-restrito">E-mail autorizado</Label>
+              <Input id="email-restrito" type="email" required autoComplete="username" value={credenciais.email} onChange={(e) => setCredenciais((c) => ({ ...c, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="senha-restrito">Senha</Label>
+              <Input id="senha-restrito" type="password" required autoComplete="current-password" value={credenciais.senha} onChange={(e) => setCredenciais((c) => ({ ...c, senha: e.target.value }))} />
+            </div>
+            {erroRestrito && <p role="alert" className="text-sm text-destructive">{erroRestrito}</p>}
+            <Button type="submit" className="w-full"><ShieldCheck /> Entrar no Painel Executivo</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
