@@ -35,3 +35,4 @@ use the editor.
 - Business rules (fee, Human-in-the-Loop threshold, audit scoring, orchestrator recommendation) are pure functions in `src/lib/atmosfera/regras.ts` with tests beside them; UI must call these instead of re-implementing math.
 - Audit agents (Firecrawl extractor, accounting auditor) and the buying assistant are simulated client-side; keep their output deterministic so tests stay stable.
 - Admin access is only via the footer "Área Restrita (Gestão)" modal checked by `validarAcessoAdmin` in regras.ts; this is a client-side demo gate, move it server-side (Lovable Cloud auth) before real use.
+- Firecrawl scraping of seller registry URLs runs server-side in `src/lib/atmosfera/firecrawl.functions.ts` via the Lovable connector gateway; short codes and failures fall back to the deterministic simulation so audits never block.

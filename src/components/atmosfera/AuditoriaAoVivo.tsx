@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Circle, Globe, Loader2, ScanSearch, ShieldCheck, XCircle } from "lucide-react";
 import { SeloNota } from "./SeloNota";
 import type { ResultadoAuditoria } from "@/lib/atmosfera/regras";
+import type { ExtracaoReal } from "@/lib/atmosfera/firecrawl.server";
 import { cn } from "@/lib/utils";
 
 interface Evento {
@@ -16,11 +17,20 @@ const PASSOS = [
   { titulo: "Selo de Integridade ATMOSFERA", sub: "Nota 0–100 e publicação", icone: ShieldCheck },
 ];
 
-function roteiro(registro: string, r: ResultadoAuditoria): Evento[] {
+function roteiro(registro: string, r: ResultadoAuditoria, x?: ExtracaoReal | null): Evento[] {
   const host = registro.match(/https?:\/\/([^/]+)/)?.[1] ?? "registro público da certificadora";
+  const extracao: Evento[] = x
+    ? x.ok
+      ? [
+          { passo: 0, texto: `[Firecrawl REAL] POST /v2/scrape ${host} → ${x.status ?? 200} OK`, ok: true },
+          { passo: 0, texto: `Título extraído: "${x.titulo}"` },
+          { passo: 0, texto: `Trecho público: "${x.trecho || "(página sem texto legível)"}…"` },
+        ]
+      : [{ passo: 0, texto: `[Firecrawl REAL] ${host} → ${x.erro} · usando simulação como alternativa`, ok: false }]
+    : [{ passo: 0, texto: `[simulação] GET ${host} → 200 OK (scrape markdown)` }];
   return [
     { passo: 0, texto: `event: start · agente=extrator · alvo="${registro.slice(0, 60)}"` },
-    { passo: 0, texto: `GET ${host} → 200 OK (scrape markdown)` },
+    ...extracao,
     { passo: 0, texto: `Certificadora detectada: ${r.certificadora}` },
     { passo: 0, texto: `Código normalizado: ${r.codigoNormalizado}` },
     ...r.verificacoes.map((v) => ({ passo: 1 as const, texto: `${v.rotulo}: ${v.detalhe}`, ok: v.ok })),
@@ -36,13 +46,15 @@ function roteiro(registro: string, r: ResultadoAuditoria): Evento[] {
 export function AuditoriaAoVivo({
   registro,
   resultado,
+  extracao,
   onConcluir,
 }: {
   registro: string;
+  extracao?: ExtracaoReal | null;
   resultado: ResultadoAuditoria;
   onConcluir: () => void;
 }) {
-  const eventos = useRef(roteiro(registro, resultado)).current;
+  const eventos = useRef(roteiro(registro, resultado, extracao)).current;
   const [visiveis, setVisiveis] = useState(0);
   const concluiu = useRef(false);
 

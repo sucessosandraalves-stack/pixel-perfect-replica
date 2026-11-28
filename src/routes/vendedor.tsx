@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useRef, useState, type FormEvent } from "react";
-import { Send, Store } from "lucide-react";
+import { Loader2, Send, Store } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { extrairRegistro } from "@/lib/atmosfera/firecrawl.functions";
+import type { ExtracaoReal } from "@/lib/atmosfera/firecrawl.server";
 import { toast } from "sonner";
 import { CabecalhoPagina } from "@/components/atmosfera/AppShell";
 import { AuditoriaAoVivo } from "@/components/atmosfera/AuditoriaAoVivo";
@@ -42,14 +45,17 @@ function PainelVendedor({ vendedor }: { vendedor: Usuario }) {
     registro: string;
     resultado: ResultadoAuditoria;
     dados: typeof VAZIO;
+    extracao: ExtracaoReal | null;
   } | null>(null);
+  const [extraindo, setExtraindo] = useState(false);
+  const extrair = useServerFn(extrairRegistro);
   const [concluida, setConcluida] = useState(false);
   const auditoriaRef = useRef(auditoria);
   auditoriaRef.current = auditoria;
 
   const set = (k: keyof typeof VAZIO) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  function submeter(e: FormEvent) {
+  async function submeter(e: FormEvent) {
     e.preventDefault();
     const quantidade = parseInt(form.quantidade, 10);
     const precoTonelada = parseFloat(form.preco.replace(",", "."));
@@ -62,7 +68,19 @@ function PainelVendedor({ vendedor }: { vendedor: Usuario }) {
       lotes,
     );
     setConcluida(false);
-    setAuditoria({ id: Date.now(), registro: form.registro, resultado, dados: form });
+    let extracao: ExtracaoReal | null = null;
+    const url = form.registro.trim();
+    if (/^https?:\/\/\S+$/i.test(url)) {
+      setExtraindo(true);
+      try {
+        extracao = await extrair({ data: { url } });
+      } catch {
+        extracao = { ok: false, url, erro: "Não foi possível contatar o extrator" };
+      } finally {
+        setExtraindo(false);
+      }
+    }
+    setAuditoria({ id: Date.now(), registro: form.registro, resultado, dados: form, extracao });
   }
 
   const concluir = useCallback(() => {
@@ -148,15 +166,15 @@ function PainelVendedor({ vendedor }: { vendedor: Usuario }) {
               <p className="text-xs text-muted-foreground">Aceitos: Verra (VCS), Gold Standard (GS), Cercarbono, Puro.earth, ACR.</p>
             </div>
             <div className="md:col-span-2">
-              <Button type="submit" size="lg" className="w-full md:w-auto" disabled={!!auditoria && !concluida}>
-                <Send /> Submeter para Auditoria e Publicar
+              <Button type="submit" size="lg" className="w-full md:w-auto" disabled={extraindo || (!!auditoria && !concluida)}>
+                {extraindo ? <><Loader2 className="animate-spin" /> Lendo a página da certificadora…</> : <><Send /> Submeter para Auditoria e Publicar</>}
               </Button>
             </div>
           </form>
 
           {auditoria && (
             <div className="space-y-3">
-              <AuditoriaAoVivo key={auditoria.id} registro={auditoria.registro} resultado={auditoria.resultado} onConcluir={concluir} />
+              <AuditoriaAoVivo key={auditoria.id} registro={auditoria.registro} resultado={auditoria.resultado} extracao={auditoria.extracao} onConcluir={concluir} />
               {concluida && auditoria.resultado.aprovado && (
                 <Button asChild variant="outline">
                   <Link to="/marketplace"><Store /> Ver no Marketplace</Link>
